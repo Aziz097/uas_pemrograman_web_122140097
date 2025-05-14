@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import BarangPage from "./pages/BarangPage";
 import LokasiPage from "./pages/LokasiPage";
 import NotFound from "./pages/NotFound";
+import ReportPage from "./pages/ReportPage";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -40,6 +41,14 @@ export default function App() {
                 <LokasiPage />
               </PrivateRoute>
             }
+          />
+          <Route
+            path="/report"
+            element={
+               <PrivateRoute>
+                 <ReportPage />
+               </PrivateRoute>
+             }
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
