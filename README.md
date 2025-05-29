@@ -1,76 +1,70 @@
-# SUPER BMD: Sistem Unggul Pengelolaan Elektronik dan Reporting Barang Milik Daerah
+# SUPER BMD (Sistem Unggul Pengelolaan Elektronik dan Reporting Barang Milik Daerah)
 
-## Deskripsi Aplikasi Web
-SUPER BMD adalah aplikasi web berbasis **Python Pyramid** (backend) dan **React JS** (frontend) yang dirancang untuk membantu instansi pemerintah daerah dalam mengelola aset (Barang Milik Daerah) secara digital. Fitur utamanya meliputi pencatatan, pelacakan, reporting, dan dashboard ringkas untuk memantau jumlah barang dan lokasi.
+SUPER BMD adalah aplikasi manajemen aset web yang dirancang untuk instansi pemerintah daerah, memungkinkan pengelolaan barang milik daerah secara digital. Sistem ini menawarkan pencatatan, pelacakan, dan pelaporan aset yang akuntabel dan terstruktur secara real-time.
 
-## Dependensi Paket
+## Gambaran Umum Proyek
 
-### Backend (Python Pyramid)
-- Python ≥ 3.8  
-- pyramid  
-- sqlalchemy  
-- alembic  
-- psycopg2-binary  
-- passlib (untuk hashing password)  
-- pytest & coverage (untuk unit test)
+Proyek ini terdiri dari dua bagian utama: frontend (antarmuka pengguna) dan backend (API dan logika bisnis).
 
-Instalasi:
-```bash
-pip install pyramid sqlalchemy alembic psycopg2-binary passlib pytest coverage
-````
+* **Frontend:** Dibangun dengan React JS (Vite) dan Tailwind CSS, menyediakan antarmuka pengguna yang modern dan responsif.
+* **Backend:** Dibangun dengan Python Pyramid, SQLAlchemy, dan PostgreSQL, menyediakan API RESTful yang aman dan skalabel untuk mengelola data aset, lokasi, dan pengguna.
 
-### Frontend (React JS + Vite + Tailwind)
+## Fitur Utama Aplikasi
 
-* Node.js ≥ 14
-* vite
-* react
-* react-dom
-* react-router-dom
-* axios
-* react-hook-form
-* tailwindcss
+* **Pengelolaan Aset Komprehensif:** Pencatatan detail barang, termasuk kode, kondisi, lokasi, dan penanggung jawab.
+* **Manajemen Lokasi Efisien:** Strukturasi dan pelacakan aset berdasarkan lokasi fisik.
+* **Manajemen Pengguna Berbasis Peran:** Kontrol akses yang granular dengan peran Admin, Penanggung Jawab, dan Viewer.
+* **Dashboard Analitis:** Visualisasi data aset yang ringkas untuk tinjauan cepat.
+* **Pelaporan Dinamis:** Pembuatan laporan yang dapat disesuaikan untuk analisis dan akuntabilitas.
+* **Keamanan:** Autentikasi JWT dan hashing password untuk melindungi data.
 
-Instalasi:
+## Teknologi yang Digunakan
 
-```bash
-npm install
-npm install -D tailwindcss
-npm install react-router-dom axios react-hook-form
+* **Frontend:** React JS, Vite, Axios, React Hook Form, Tailwind CSS, React Router Dom, Recharts, js-cookie, Heroicons.
+* **Backend:** Python Pyramid, SQLAlchemy, Alembic, PostgreSQL, Waitress, Bcrypt, Marshmallow, Pyramid JWT.
+
+## Memulai (Development Setup)
+
+Untuk menjalankan aplikasi ini di lingkungan pengembangan Anda, ikuti langkah-langkah di bawah ini:
+
+### Persyaratan
+
+* Node.js & npm (atau yarn/pnpm)
+* Python 3.8+ & pip
+* PostgreSQL Database Server
+
+### Langkah-langkah
+
+1.  **Setup Backend:**
+    * Clone repositori backend:
+        ```bash
+        git clone [https://github.com/uas_pemrograman_web_122140097/backend-superbmd.git](https://github.com/uas_pemrograman_web_122140097/backend-superbmd.git)
+        cd superbmd-backend
+        ```
+    * Ikuti instruksi di `superbmd-backend/README.md` untuk menginstal dependensi, menyiapkan database PostgreSQL, mengonfigurasi `development.ini`, menjalankan migrasi Alembic, dan menjalankan server backend.
+
+2.  **Setup Frontend:**
+    * Clone repositori frontend (di direktori terpisah atau sebagai subdirektori):
+        ```bash
+        git clone [https://github.com/uas_pemrograman_web_122140097/frontend-superbmd.git](https://github.com/uas_pemrograman_web_122140097/frontend-superbmd.git)
+        cd superbmd-frontend
+        ```
+    * Ikuti instruksi di `superbmd-frontend/README.md` untuk menginstal dependensi dan menjalankan server frontend.
+
+3.  **Integrasi dan Uji Coba:**
+    * Pastikan kedua server (backend dan frontend) berjalan secara bersamaan.
+    * Akses aplikasi frontend di browser Anda (misalnya `http://localhost:5173`).
+    * Gunakan Postman (atau tool API lain) untuk membuat user admin awal di backend jika belum ada (lihat `superbmd-backend/README.md` untuk instruksi spesifik).
+    * Login ke aplikasi frontend dengan kredensial admin tersebut dan mulai jelajahi fungsionalitasnya.
+
+## Struktur Proyek Lengkap
 ```
-
-## Fitur Aplikasi
-
-1. **Autentikasi Dasar**
-
-   * Login dengan username/password (hashed) sebelum mengakses dashboard.
-2. **CRUD Barang**
-
-   * Create, Read, Update, Delete entitas *Barang* (nama, kode, kondisi, lokasi).
-3. **CRUD Lokasi**
-
-   * Create, Read, Update, Delete entitas *Lokasi* (nama, kode, alamat).
-4. **Dashboard Ringkas**
-
-   * Tampilkan total jumlah barang dan lokasi secara real-time.
-5. **Routing & Proteksi Halaman**
-
-   * Navigasi antar halaman menggunakan React Router DOM; proteksi endpoint menggunakan React “PrivateRoute” dan autentikasi backend.
-
-## Referensi
-
-* **Pyramid Web Framework**
-  [https://docs.pylonsproject.org/projects/pyramid/en/latest/](https://docs.pylonsproject.org/projects/pyramid/en/latest/)
-* **SQLAlchemy (ORM)**
-  [https://docs.sqlalchemy.org/](https://docs.sqlalchemy.org/)
-* **Alembic (DB Migrations)**
-  [https://alembic.sqlalchemy.org/](https://alembic.sqlalchemy.org/)
-* **React JS**
-  [https://reactjs.org/](https://reactjs.org/)
-* **Vite**
-  [https://vitejs.dev/](https://vitejs.dev/)
-* **Tailwind CSS**
-  [https://tailwindcss.com/](https://tailwindcss.com/)
-* **React Router DOM**
-  [https://reactrouter.com/](https://reactrouter.com/)
-* **Axios**
-  [https://axios-http.com/](https://axios-http.com/)
+uas_pemrograman_web_122140097/
+├── frontend-superbmd/           # Direktori root untuk aplikasi frontend React (Vite)
+│   └── (isi frontend README.md)
+│       └── ...
+├── backend-superbmd/            # Direktori root untuk aplikasi backend Python Pyramid
+│   └── (isi backend README.md)
+│       └── ...
+└── README.md                    # File README utama ini
+```

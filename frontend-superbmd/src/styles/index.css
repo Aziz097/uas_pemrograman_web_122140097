@@ -1,0 +1,56 @@
+@import "tailwindcss"; /* Ini akan mengimpor semua utility, base, dan component styles dari Tailwind [cite: 5] */
+
+/* Custom scrollbar for better aesthetics */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode specific scrollbar styles */
+.dark ::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Custom styles for print media (for QR Code printing) */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+  /* Ensure backgrounds and shadows print correctly */
+  .print\:shadow-none {
+      box-shadow: none !important;
+  }
+  .print\:bg-white {
+      background-color: white !important;
+  }
+  /* Optional: Adjust font sizes for print */
+  .print\:text-sm {
+      font-size: 0.875rem !important;
+  }
+}
