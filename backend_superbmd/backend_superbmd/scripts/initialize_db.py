@@ -9,7 +9,8 @@ from sqlalchemy import engine_from_config
 # Impor model dan fungsi sesi dari superbmd_backend.models
 from ..models import get_session_factory, get_tm_session
 from ..models.mymodel import User, Lokasi, Barang, KondisiBarang, UserRole
-from ..security.auth import hash_password # Untuk hashing password user
+# Hapus import hash_password karena autentikasi dipindahkan ke frontend
+# from ..security.auth import hash_password 
 
 log = logging.getLogger(__name__)
 
@@ -46,10 +47,11 @@ def main(argv=None):
         for user_info in users_data:
             existing_user = dbsession.query(User).filter_by(username=user_info['username']).first()
             if not existing_user:
-                hashed_password = hash_password(user_info['password'])
+                # Hapus hashing password
+                # hashed_password = hash_password(user_info['password'])
                 new_user = User(
                     username=user_info['username'],
-                    password=hashed_password,
+                    password=user_info['password'], # Password disimpan plain text
                     role=user_info['role']
                 )
                 dbsession.add(new_user)

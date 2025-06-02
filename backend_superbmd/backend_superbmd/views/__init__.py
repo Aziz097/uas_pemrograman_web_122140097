@@ -1,8 +1,10 @@
 # superbmd_backend/views/__init__.py
 
+# Hapus baris ini:
+# from .auth_views import login 
+
 # Import semua view functions dari modul-modul spesifik Anda
 # Ini diperlukan agar config.scan() di __init__.py utama dapat menemukannya
-from .auth_views import login # Hanya login yang diekspos jika add_initial_admin_user tidak diekspos sebagai view
 from .user_views import (
     users_list,
     users_create,

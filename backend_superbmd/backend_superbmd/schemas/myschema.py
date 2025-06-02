@@ -1,3 +1,5 @@
+# superbmd_backend/schemas/myschema.py
+
 from marshmallow import Schema, fields, validate
 
 # --- Shared Schemas ---
@@ -12,19 +14,18 @@ class PaginationSchema(Schema):
 
 class UserSchema(Schema):
     """Schema for user data validation and serialization."""
-    id_user = fields.Integer(attribute='id', dump_only=True) # Map 'id' from BaseModel to 'id_user' in JSON [cite: 39]
+    # Ubah id_user menjadi id
+    id = fields.Integer(dump_only=True) 
     username = fields.String(required=True, validate=validate.Length(min=3, max=50))
-    password = fields.String(load_only=True, required=False, validate=validate.Length(min=6)) # load_only agar tidak terlihat di respons API
+    password = fields.String(load_only=True, required=False, validate=validate.Length(min=6))
     role = fields.String(required=True, validate=validate.OneOf(["admin", "penanggung_jawab", "viewer"]))
-    created_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
-    updated_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
 
 class UserCreateSchema(UserSchema):
-    """Schema for user creation (password is required here)."""
     password = fields.String(load_only=True, required=True, validate=validate.Length(min=6))
 
 class UserUpdateSchema(Schema):
-    """Schema for user updates (only updatable fields, password optional)."""
     username = fields.String(validate=validate.Length(min=3, max=50))
     password = fields.String(load_only=True, validate=validate.Length(min=6))
     role = fields.String(validate=validate.OneOf(["admin", "penanggung_jawab", "viewer"]))
@@ -37,19 +38,18 @@ class LoginSchema(Schema):
 
 class LokasiSchema(Schema):
     """Schema for location data validation and serialization."""
-    id_lokasi = fields.Integer(attribute='id', dump_only=True) # Map 'id' from BaseModel to 'id_lokasi' in JSON [cite: 39]
+    # Ubah id_lokasi menjadi id
+    id = fields.Integer(dump_only=True) 
     nama_lokasi = fields.String(required=True, validate=validate.Length(min=3, max=100))
     kode_lokasi = fields.String(required=True, validate=validate.Length(min=3, max=50))
     alamat_lokasi = fields.String(required=True, validate=validate.Length(min=5))
-    created_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
-    updated_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
 
 class LokasiCreateSchema(LokasiSchema):
-    """Schema for location creation."""
-    pass # All fields are required by default in LokasiSchema for creation
+    pass
 
 class LokasiUpdateSchema(Schema):
-    """Schema for location updates."""
     nama_lokasi = fields.String(validate=validate.Length(min=3, max=100))
     kode_lokasi = fields.String(validate=validate.Length(min=3, max=50))
     alamat_lokasi = fields.String(validate=validate.Length(min=5))
@@ -58,29 +58,27 @@ class LokasiUpdateSchema(Schema):
 
 class BarangSchema(Schema):
     """Schema for asset data validation and serialization."""
-    id_barang = fields.Integer(attribute='id', dump_only=True) # Map 'id' from BaseModel to 'id_barang' in JSON [cite: 39]
+    # Ubah id_barang menjadi id
+    id = fields.Integer(dump_only=True) 
     nama_barang = fields.String(required=True, validate=validate.Length(min=3, max=200))
     kode_barang = fields.String(required=True, validate=validate.Length(min=3, max=100))
     kondisi = fields.String(required=True, validate=validate.OneOf(["Baik", "Rusak Ringan", "Rusak Berat"]))
-    id_lokasi = fields.Integer(required=True) # Ini adalah Foreign Key, bukan PK model
+    # id_lokasi tetap karena ini adalah Foreign Key (bukan primary key objek itu sendiri)
+    id_lokasi = fields.Integer(required=True) 
     penanggung_jawab = fields.String(required=True, validate=validate.Length(min=3, max=50))
     tanggal_masuk = fields.DateTime(format="%Y-%m-%d", required=True)
     tanggal_pembaruan = fields.DateTime(format="%Y-%m-%d", allow_none=True)
     gambar_aset = fields.String(allow_none=True)
-    created_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
-    updated_at = fields.DateTime(dump_only=True) # Dari BaseModel [cite: 30]
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
 
-    # Nested schema untuk detail lokasi (lokasi_obj di model Barang)
-    # Ini akan mengembalikan objek Lokasi (sesuai LokasiSchema) dalam respons Barang
-    lokasi = fields.Nested(LokasiSchema, dump_only=True, exclude=['alamat_lokasi', 'created_at', 'updated_at'])
+    # Nested schema untuk detail lokasi. Pastikan LokasiSchema yang digunakan sudah dimodifikasi (menggunakan 'id')
+    lokasi = fields.Nested(LokasiSchema(only=('id', 'nama_lokasi', 'kode_lokasi', 'alamat_lokasi')), dump_only=True)
 
 class BarangCreateSchema(BarangSchema):
-    """Schema for asset creation."""
-    # id_barang tidak diperlukan saat membuat (dump_only=True di BarangSchema)
     pass
 
 class BarangUpdateSchema(Schema):
-    """Schema for asset updates."""
     nama_barang = fields.String(validate=validate.Length(min=3, max=200))
     kode_barang = fields.String(validate=validate.Length(min=3, max=100))
     kondisi = fields.String(validate=validate.OneOf(["Baik", "Rusak Ringan", "Rusak Berat"]))
@@ -93,15 +91,18 @@ class BarangUpdateSchema(Schema):
 # --- Response List Schemas (tetap sama, hanya memastikan nested schema terbaru) ---
 
 class UserListSchema(Schema):
-    items = fields.List(fields.Nested(UserSchema, exclude=['password']))
+    # Pastikan UserSchema yang di-nested sudah dimodifikasi (menggunakan 'id')
+    items = fields.List(fields.Nested(UserSchema, exclude=['password'])) 
     pagination = fields.Nested(PaginationSchema)
 
 class LokasiListSchema(Schema):
-    items = fields.List(fields.Nested(LokasiSchema))
+    # Pastikan LokasiSchema yang di-nested sudah dimodifikasi (menggunakan 'id')
+    items = fields.List(fields.Nested(LokasiSchema)) 
     pagination = fields.Nested(PaginationSchema)
 
 class BarangListSchema(Schema):
-    items = fields.List(fields.Nested(BarangSchema))
+    # Pastikan BarangSchema yang di-nested sudah dimodifikasi (menggunakan 'id')
+    items = fields.List(fields.Nested(BarangSchema)) 
     pagination = fields.Nested(PaginationSchema)
 
 # --- Laporan Schemas (tetap sama) ---

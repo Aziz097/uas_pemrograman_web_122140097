@@ -2,15 +2,12 @@
 from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPBadRequest
-from sqlalchemy import func, cast, Date, union_all, Text # Import Text for casting
-from sqlalchemy.orm import aliased
+from sqlalchemy import func, cast, Date, union_all, Text, case
 import datetime
 import logging
 
 from ..models.mymodel import Barang, Lokasi, KondisiBarang
 from ..schemas.myschema import ReportAssetByLocationSchema, ReportAssetByConditionSchema, ReportAssetInOutSchema
-from ..services.barang_service import BarangService # Untuk filter date/location/condition [cite: 2]
-from ..services.lokasi_service import LokasiService # Untuk nama lokasi [cite: 1]
 
 log = logging.getLogger(__name__)
 
@@ -43,10 +40,10 @@ def _apply_report_filters(query, model_class, params):
             raise HTTPBadRequest(json_body={'message': 'Kondisi barang tidak valid.'})
     return query
 
-@view_config(route_name='report_assets_by_location', renderer='json', request_method='GET', permission='authenticated')
+@view_config(route_name='report_assets_by_location', renderer='json', request_method='GET') # Hapus permission
 def report_assets_by_location(request):
     """
-    Generates a report of assets grouped by location.
+    Generates a report of assets grouped by location. Accessible by anyone.
     Query params: start_date, end_date
     """
     dbsession = request.dbsession
@@ -54,13 +51,12 @@ def report_assets_by_location(request):
     try:
         query = dbsession.query(
             Lokasi.nama_lokasi,
-            func.count(Barang.id), # Menggunakan id dari BaseModel [cite: 30]
-            func.count(func.case([(Barang.kondisi == KondisiBarang.BAIK, 1)], else_=None)),
-            func.count(func.case([(Barang.kondisi == KondisiBarang.RUSAK_RINGAN, 1)], else_=None)),
-            func.count(func.case([(Barang.kondisi == KondisiBarang.RUSAK_BERAT, 1)], else_=None))
-        ).outerjoin(Barang, Lokasi.id == Barang.id_lokasi) # Join dengan ID dari BaseModel [cite: 30]
+            func.count(Barang.id).label("total_assets"),
+            func.sum(case((Barang.kondisi == KondisiBarang.BAIK, 1), else_=0)).label("baik"),
+            func.sum(case((Barang.kondisi == KondisiBarang.RUSAK_RINGAN, 1), else_=0)).label("rusak_ringan"),
+            func.sum(case((Barang.kondisi == KondisiBarang.RUSAK_BERAT, 1), else_=0)).label("rusak_berat"),
+        ).outerjoin(Barang, Lokasi.id == Barang.id_lokasi) # Join dengan ID dari BaseModel
         
-        # Apply date filters to Barang using the helper
         query = _apply_report_filters(query, Barang, request.params)
 
         report_data_raw = query.group_by(Lokasi.nama_lokasi).order_by(Lokasi.nama_lokasi).all()
@@ -80,12 +76,12 @@ def report_assets_by_location(request):
         raise
     except Exception as e:
         log.error(f"Error generating assets by location report: {e}")
-        raise Response(status=500, json_body={'message': 'Gagal membuat laporan aset per lokasi.'})
+        return Response(status=500, json_body={'message': 'Gagal membuat laporan aset per lokasi.'})
 
-@view_config(route_name='report_assets_by_condition', renderer='json', request_method='GET', permission='authenticated')
+@view_config(route_name='report_assets_by_condition', renderer='json', request_method='GET') # Hapus permission
 def report_assets_by_condition(request):
     """
-    Generates a report of assets grouped by condition.
+    Generates a report of assets grouped by condition. Accessible by anyone.
     Query params: start_date, end_date, location_id
     """
     dbsession = request.dbsession
@@ -93,10 +89,9 @@ def report_assets_by_condition(request):
     try:
         query = dbsession.query(
             Barang.kondisi,
-            func.count(Barang.id) # Menggunakan id dari BaseModel [cite: 30]
+            func.count(Barang.id) # Menggunakan id dari BaseModel
         )
         
-        # Apply filters
         query = _apply_report_filters(query, Barang, request.params)
 
         report_data_raw = query.group_by(Barang.kondisi).order_by(Barang.kondisi).all()
@@ -108,7 +103,6 @@ def report_assets_by_condition(request):
                 'total_assets': count
             })
         
-        # Ensure all conditions are present, even if count is 0
         all_conditions_enum = [e for e in KondisiBarang]
         for cond_enum in all_conditions_enum:
             if not any(d['condition'] == cond_enum.value for d in report_data):
@@ -120,54 +114,45 @@ def report_assets_by_condition(request):
         raise
     except Exception as e:
         log.error(f"Error generating assets by condition report: {e}")
-        raise Response(status=500, json_body={'message': 'Gagal membuat laporan aset per kondisi.'})
+        return Response(status=500, json_body={'message': 'Gagal membuat laporan aset per kondisi.'})
 
-@view_config(route_name='report_assets_in_out', renderer='json', request_method='GET', permission='authenticated')
+@view_config(route_name='report_assets_in_out', renderer='json', request_method='GET') # Hapus permission
 def report_assets_in_out(request):
     """
-    Generates a report for asset entry/update history.
+    Generates a report for asset entry/update history. Accessible by anyone.
     Query params: start_date, end_date, location_id, condition
     """
     dbsession = request.dbsession
     
     try:
-        # Laporan Aset Masuk (berdasarkan tanggal_masuk)
         in_query = dbsession.query(
             Barang.nama_barang,
             Barang.kode_barang,
             Lokasi.nama_lokasi,
-            Barang.tanggal_masuk.label("tanggal_transaksi"), # Alias agar bisa di-union
+            Barang.tanggal_masuk.label("tanggal_transaksi"),
             func.lit("MASUK").label("tipe_transaksi"),
             func.cast(None, Text).label("kondisi_lama"),
             Barang.kondisi.label("kondisi_baru")
-        ).join(Lokasi, Lokasi.id == Barang.id_lokasi) # Join dengan ID dari BaseModel [cite: 30]
+        ).join(Lokasi, Lokasi.id == Barang.id_lokasi) # Join dengan ID dari BaseModel
         
-        # Apply filters to in_query based on tanggal_masuk
         in_query_filtered = _apply_report_filters(in_query, Barang, request.params)
 
-
-        # Laporan Aset Diperbarui (berdasarkan tanggal_pembaruan)
         updated_query = dbsession.query(
             Barang.nama_barang,
             Barang.kode_barang,
             Lokasi.nama_lokasi,
-            Barang.tanggal_pembaruan.label("tanggal_transaksi"), # Alias agar bisa di-union
+            Barang.tanggal_pembaruan.label("tanggal_transaksi"),
             func.lit("PEMBARUAN").label("tipe_transaksi"),
-            func.cast(None, Text).label("kondisi_lama"), # Tanpa log historis, ini dummy
+            func.cast(None, Text).label("kondisi_lama"),
             Barang.kondisi.label("kondisi_baru")
-        ).join(Lokasi, Lokasi.id == Barang.id_lokasi).filter(Barang.tanggal_pembaruan != None) # Join dengan ID dari BaseModel [cite: 30]
+        ).join(Lokasi, Lokasi.id == Barang.id_lokasi).filter(Barang.tanggal_pembaruan != None) # Join dengan ID dari BaseModel
 
-        # Apply filters to updated_query based on tanggal_pembaruan
         updated_query_filtered = _apply_report_filters(updated_query, Barang, request.params)
 
-        # Gabungkan hasil (union)
-        # Pastikan kolom sesuai urutan dan tipe. `union_all` dari SQLAlchemy
-        # Catatan: union_all di SQLAlchemy membutuhkan Statement object
         combined_statement = in_query_filtered.statement.union_all(updated_query_filtered.statement)
-        full_report_query = dbsession.query(combined_statement.alias('full_report')) # Alias union result
+        full_report_query = dbsession.query(combined_statement.alias('full_report'))
 
-        # Jalankan query gabungan dan dapatkan hasilnya
-        report_data_raw = full_report_query.order_by(Text("tanggal_transaksi")).all() # Order by text() [cite: 30]
+        report_data_raw = full_report_query.order_by(Text("tanggal_transaksi")).all() # Order by text()
 
         report_data = []
         for row in report_data_raw:
@@ -186,4 +171,4 @@ def report_assets_in_out(request):
         raise
     except Exception as e:
         log.error(f"Error generating assets in/out report: {e}")
-        raise Response(status=500, json_body={'message': 'Gagal membuat laporan aset masuk/keluar.'})
+        return Response(status=500, json_body={'message': 'Gagal membuat laporan aset masuk/keluar.'})

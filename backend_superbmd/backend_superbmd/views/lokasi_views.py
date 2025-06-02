@@ -3,12 +3,12 @@ from pyramid.view import view_config
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPNotFound, HTTPBadRequest
 from sqlalchemy.exc import IntegrityError, DBAPIError
-from marshmallow import ValidationError # Import ValidationError [cite: 46]
+from marshmallow import ValidationError
 import logging
 
 from ..schemas.myschema import LokasiSchema, LokasiCreateSchema, LokasiUpdateSchema, LokasiListSchema
 from ..models.mymodel import Lokasi
-from ..services.lokasi_service import LokasiService # Import LokasiService [cite: 1]
+from ..services.lokasi_service import LokasiService
 
 log = logging.getLogger(__name__)
 
@@ -18,21 +18,19 @@ lokasi_create_schema = LokasiCreateSchema()
 lokasi_update_schema = LokasiUpdateSchema()
 lokasi_list_schema = LokasiListSchema()
 
-@view_config(route_name='lokasi_list', renderer='json', request_method='GET', permission='authenticated')
+@view_config(route_name='lokasi_list', renderer='json', request_method='GET') # Hapus permission
 def lokasi_list(request):
     """
-    Retrieves a paginated list of locations. Accessible by authenticated users.
+    Retrieves a paginated list of locations. Accessible by anyone.
     """
     page = int(request.params.get('page', 1))
     limit = int(request.params.get('limit', 10))
     search_term = request.params.get('search', '').strip()
 
-    # Gunakan Service Layer [cite: 1]
     all_lokasi = LokasiService.get_all_lokasi(request.dbsession, search_term)
 
     total_items = len(all_lokasi)
-    lokasi = all_lokasi[(page - 1) * limit : page * limit] # Lakukan paginasi di sini
-
+    lokasi = all_lokasi[(page - 1) * limit : page * limit]
     total_pages = (total_items + limit - 1) // limit
 
     return lokasi_list_schema.dump({
@@ -45,23 +43,21 @@ def lokasi_list(request):
         }
     })
 
-@view_config(route_name='lokasi_create', renderer='json', request_method='POST', permission='role:admin')
+@view_config(route_name='lokasi_create', renderer='json', request_method='POST') # Hapus permission
 def lokasi_create(request):
     """
-    Creates a new location. Only accessible by admin.
+    Creates a new location. Accessible by anyone (otorisasi di frontend).
     """
     try:
-        lokasi_data = lokasi_create_schema.load(request.json_body) # Gunakan LokasiCreateSchema [cite: 46]
+        lokasi_data = lokasi_create_schema.load(request.json_body)
     except ValidationError as e:
         log.error(f"Lokasi creation validation error: {e.messages}")
         raise HTTPBadRequest(json_body={'message': 'Invalid request body', 'errors': e.messages})
 
-    # Cek apakah kode_lokasi sudah ada melalui Service [cite: 1]
     if LokasiService.get_lokasi_by_kode(request.dbsession, lokasi_data['kode_lokasi']):
         raise HTTPBadRequest(json_body={'message': 'Kode lokasi sudah digunakan.'})
 
     try:
-        # Gunakan Service Layer untuk membuat lokasi [cite: 1]
         new_lokasi = LokasiService.create_lokasi(request.dbsession, lokasi_data)
     except IntegrityError:
         request.dbsession.rollback()
@@ -74,14 +70,13 @@ def lokasi_create(request):
     log.info(f"Location {new_lokasi.nama_lokasi} created.")
     return lokasi_schema.dump(new_lokasi), 201
 
-@view_config(route_name='lokasi_detail', renderer='json', request_method='GET', permission='authenticated')
+@view_config(route_name='lokasi_detail', renderer='json', request_method='GET') # Hapus permission
 def lokasi_detail(request):
     """
-    Retrieves details of a specific location. Accessible by authenticated users.
+    Retrieves details of a specific location. Accessible by anyone.
     """
     lokasi_id = int(request.matchdict['id'])
     
-    # Gunakan Service Layer [cite: 1]
     lokasi = LokasiService.get_lokasi_by_id(request.dbsession, lokasi_id)
     
     if not lokasi:
@@ -89,32 +84,29 @@ def lokasi_detail(request):
 
     return lokasi_schema.dump(lokasi)
 
-@view_config(route_name='lokasi_update', renderer='json', request_method='PUT', permission='role:admin')
+@view_config(route_name='lokasi_update', renderer='json', request_method='PUT') # Hapus permission
 def lokasi_update(request):
     """
-    Updates an existing location. Only accessible by admin.
+    Updates an existing location. Accessible by anyone (otorisasi di frontend).
     """
     lokasi_id = int(request.matchdict['id'])
     
-    # Gunakan Service Layer [cite: 1]
     existing_lokasi = LokasiService.get_lokasi_by_id(request.dbsession, lokasi_id)
     
     if not existing_lokasi:
         raise HTTPNotFound(json_body={'message': 'Lokasi tidak ditemukan.'})
 
     try:
-        update_data = lokasi_update_schema.load(request.json_body, partial=True) # Gunakan LokasiUpdateSchema [cite: 46]
+        update_data = lokasi_update_schema.load(request.json_body, partial=True)
     except ValidationError as e:
         log.error(f"Lokasi update validation error for lokasi {lokasi_id}: {e.messages}")
         raise HTTPBadRequest(json_body={'message': 'Invalid request body', 'errors': e.messages})
 
-    # Cek apakah kode_lokasi yang diupdate sudah digunakan oleh lokasi lain melalui Service [cite: 1]
     if 'kode_lokasi' in update_data and update_data['kode_lokasi'] != existing_lokasi.kode_lokasi:
         if LokasiService.get_lokasi_by_kode(request.dbsession, update_data['kode_lokasi']):
             raise HTTPBadRequest(json_body={'message': 'Kode lokasi sudah digunakan oleh lokasi lain.'})
 
     try:
-        # Gunakan Service Layer untuk update lokasi [cite: 1]
         updated_lokasi = LokasiService.update_lokasi(request.dbsession, existing_lokasi, update_data)
     except IntegrityError:
         request.dbsession.rollback()
@@ -127,22 +119,20 @@ def lokasi_update(request):
     log.info(f"Location {updated_lokasi.nama_lokasi} updated.")
     return lokasi_schema.dump(updated_lokasi)
 
-@view_config(route_name='lokasi_delete', renderer='json', request_method='DELETE', permission='role:admin')
+@view_config(route_name='lokasi_delete', renderer='json', request_method='DELETE') # Hapus permission
 def lokasi_delete(request):
     """
-    Deletes a location. Only accessible by admin.
+    Deletes a location. Accessible by anyone (otorisasi di frontend).
     Note: Check for associated Barang before deleting a location.
     """
     lokasi_id = int(request.matchdict['id'])
     
-    # Gunakan Service Layer [cite: 1]
     lokasi_to_delete = LokasiService.get_lokasi_by_id(request.dbsession, lokasi_id)
     
     if not lokasi_to_delete:
         raise HTTPNotFound(json_body={'message': 'Lokasi tidak ditemukan.'})
 
-    # Periksa apakah ada barang yang terkait dengan lokasi ini sebelum menghapus
-    if lokasi_to_delete.barang: # Relasi 'barang' di model Lokasi
+    if lokasi_to_delete.barang:
         raise HTTPBadRequest(json_body={'message': 'Gagal menghapus lokasi. Ada barang terkait dengan lokasi ini. Hapus barang terlebih dahulu.'})
 
     try:
