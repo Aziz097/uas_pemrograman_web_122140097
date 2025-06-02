@@ -79,7 +79,7 @@ const UserFormPage = () => {
     if (errorEdit) return <div className="p-4 text-red-500">Gagal memuat user: {errorEdit}</div>;
 
     return (
-        <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto">
+        <div className="p-6 bg-white rounded-lg shadow-md max-w-xl mx-auto border border-gray-300 dark:border-gray-600">
             <h1 className="text-2xl font-bold mb-6">{isEditMode ? "Edit Pengguna" : "Tambah Pengguna"}</h1>
             <form onSubmit={handleSubmit} autoComplete="off">
                 <div className="mb-4">

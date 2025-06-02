@@ -56,6 +56,9 @@ let toastCounter = 0;
 const toasts = new Set();
 let forceUpdate = () => {}; // Fungsi untuk memicu re-render ToastProvider
 
+// Track recent messages to prevent duplicates
+const recentMessages = new Map(); // Maps message+type to timestamp
+
 export const ToastProvider = ({ children }) => {
     const [currentToasts, setCurrentToasts] = useState([]);
     const toastContainerRef = useRef(null);
@@ -73,6 +76,25 @@ export const ToastProvider = ({ children }) => {
     }, []);
 
     const addToast = (message, type = 'info') => {
+        // Create a key for this message+type combination
+        const messageKey = `${message}-${type}`;
+        const now = Date.now();
+        
+        // Check if this exact message is already displayed
+        if (recentMessages.has(messageKey)) {
+            const lastShown = recentMessages.get(messageKey);
+            // Only allow duplicate messages after 5 seconds have passed
+            if (now - lastShown < 5000) {
+                // Skip duplicate message that was shown less than 5 seconds ago
+                console.log('Skipping duplicate toast from context:', message);
+                return;
+            }
+        }
+        
+        // Update the timestamp for this message
+        recentMessages.set(messageKey, now);
+        
+        // Add the toast
         const id = toastCounter++;
         const newToast = { id, message, type };
         toasts.add(newToast);
@@ -103,12 +125,36 @@ export const ToastProvider = ({ children }) => {
     );
 };
 
-export const showToast = (message, type) => {
+export const showToast = (message, type = 'info') => {
     // This assumes ToastProvider has been rendered higher up in the component tree.
     // We are directly interacting with the 'toasts' Set and triggering an update.
-    // A more robust solution might involve a custom hook that returns a function
-    // which uses useContext(ToastContext) to get the addToast function.
-    // For simplicity with direct import usage, this approach is used.
+    
+    // Create a key for this message+type combination
+    const messageKey = `${message}-${type}`;
+    const now = Date.now();
+    
+    // Check if this exact message is already displayed
+    if (recentMessages.has(messageKey)) {
+        const lastShown = recentMessages.get(messageKey);
+        // Only allow duplicate messages after 5 seconds have passed
+        if (now - lastShown < 5000) {
+            // Skip duplicate message that was shown less than 5 seconds ago
+            console.log('Skipping duplicate toast:', message);
+            return;
+        }
+    }
+    
+    // Update the timestamp for this message
+    recentMessages.set(messageKey, now);
+    
+    // Prune old messages from the tracking map (older than 10 seconds)
+    for (const [key, timestamp] of recentMessages.entries()) {
+        if (now - timestamp > 10000) {
+            recentMessages.delete(key);
+        }
+    }
+    
+    // Add the toast
     const id = toastCounter++;
     toasts.add({ id, message, type });
     if (forceUpdate) {
